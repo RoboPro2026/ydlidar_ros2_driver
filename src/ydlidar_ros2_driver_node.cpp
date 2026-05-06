@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  YDLIDAR SYSTEM
  *  YDLIDAR ROS 2 Node
  *
@@ -28,21 +28,50 @@
 #include <iostream>
 #include <string>
 #include <signal.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
 
 #define ROS2Verision "1.0.1"
-
 
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
 
   auto node = rclcpp::Node::make_shared("ydlidar_ros2_driver_node");
+  
+  // シリアルポートが開けるか確認するラムダ式
+  auto check_serial_port_ok = [&](std::string port_name) -> bool {
+    int fd = open(port_name.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
+    if (fd < 0) {
+      RCLCPP_ERROR(node->get_logger(), "Failed to open %s\n", port_name.c_str());
+      RCLCPP_ERROR(node->get_logger(), "Error: %s\n", strerror(errno));
+      return false;
+    }
+    close(fd);
+    return true;
+  };
 
   RCLCPP_INFO(node->get_logger(), "[YDLIDAR INFO] Current ROS Driver Version: %s\n", ((std::string)ROS2Verision).c_str());
+
+  // auto_detect_serial_port
+  // 本家ydlidarの実装では存在しないパスが指定された場合は自動で、デバイスを探すようになっている。
+  // auto_detect_serial_port == trueのときは自動でデバイスを探し、auto_detect_serial_port == falseのときは自動でデバイスを探さず、存在しないパスが与えられた場合は終了する。
+  bool auto_detect_serial_port = true;
+  node->declare_parameter("auto_detect_serial_port", auto_detect_serial_port);
+  node->get_parameter("auto_detect_serial_port", auto_detect_serial_port);
 
   CYdLidar laser;
   std::string str_optvalue = "/dev/ydlidar";
   node->declare_parameter("port", str_optvalue);
   node->get_parameter("port", str_optvalue);
+  
+  // auto_detect_serial_port == falseのときはシリアルポートが開けるか確認する
+  if (auto_detect_serial_port == false && check_serial_port_ok(str_optvalue) == false) {
+    return 1;
+  }
+  
   ///lidar port
   laser.setlidaropt(LidarPropSerialPort, str_optvalue.c_str(), str_optvalue.size());
 
@@ -207,7 +236,12 @@ int main(int argc, char *argv[]) {
 
   auto start_service = node->create_service<std_srvs::srv::Empty>("start_scan",start_scan_service);
 
-  rclcpp::WallRate loop_rate(20);
+  // トピック送信周波数[Hz]
+  double publish_rate = 20.0;
+  node->declare_parameter("publish_rate", publish_rate);
+  node->get_parameter("publish_rate", publish_rate);
+
+  rclcpp::WallRate loop_rate(publish_rate);
 
   while (ret && rclcpp::ok()) {
 
@@ -283,3 +317,4 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
+

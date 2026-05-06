@@ -173,6 +173,9 @@ The ydlidar_ros2_driver internal parameters are in the launch file, they are lis
 
 | Parameter name | Data Type | detail                                                       |
 | -------------- | ------- | ------------------------------------------------------------ |
+| auto_detect_serial_port | bool | auto_detect_serial_portは、フォーク元のydlidar_ros2_driverでは存在しないパラメータ。<br/> 
+フォーク元では存在しないパラメータが与えられば場合、自分で正しいデバイス名を探しに行くが、
+それをされてしまうと、USBが抜けたときに面倒なので、それを防止するパラメータ。デフォルトではauto_detect_serial_portはtrueになっている。<br/>default: `true` |
 | port         | string | Set Lidar the serial port or IP address <br/>it can be set to `/dev/ttyUSB0`, `192.168.1.11`, etc. <br/>default: `/dev/ydlidar` |
 | frame_id     | string | Lidar TF coordinate system name. <br/>default: `laser_frame` |
 | ignore_array | string | LiDAR filtering angle area<br/>eg: `-90, -80, 30, 40` |
@@ -193,7 +196,8 @@ The ydlidar_ros2_driver internal parameters are in the launch file, they are lis
 | range_min     | float | Minimum Valid range.<br/>default: `0.1` |
 | range_max     | float | Maximum Valid range.<br/>default: `16.0` |
 | frequency     | float | Set Scanning Frequency.<br/>default: `10.0` |
-| invalid_range_is_inf     | bool | Invalid Range is inf.<br/>true -- inf.<br/>false -- 0.0.<br/>default: `false` |
+| invalid_range_is_inf     | bool | Invalid Range is inf.<br/>true -- inf.<br/>`false` -- 0.0.<br/>default: `false` |
+| publish_rate | float | scan信号の送信周期。<br/> default: `20.0` |
 More paramters details, see [here](details.md)
 
 ## Contact EAI
